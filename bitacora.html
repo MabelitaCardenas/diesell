@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario Interactivo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 140vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+        }
+        .section {
+            display: none;
+        }
+        .visible {
+            display: block;
+        }
+        .box {
+            margin: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 20px;
+            color: white;
+        }
+        .general { background-color: #4CAF50; }
+        .zero-water { background-color: #007BFF; }
+        .ilpea { background-color: #FF5722; }
+        .inspection { background-color: #8B008B; }
+        input, button, select {
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 18px;
+            width: 80%;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="inicio" class="section visible">
+        <div class="box general" onclick="seleccionarCategoria('General')">General</div>
+        <div class="box zero-water" onclick="seleccionarCategoria('Zero Water')">Zero Water</div>
+        <div class="box ilpea" onclick="seleccionarCategoria('Ilpea')">Ilpea</div>
+        <div class="box inspection" onclick="seleccionarCategoria('Inspección de Vehículo')">Inspección de Vehículo</div>
+    </div>
+
+    <div id="formularioInspeccion" class="section">
+        <h2>Formulario de Inspección de Vehículo</h2>
+        <label>Hora:</label><br>
+        <input type="time" id="horaInput"><br>
+        <label>Nombre del chofer:</label><br>
+        <input type="text" id="choferInput"><br>
+        <label>Mecánico recibido:</label><br>      
+        <input type="text" id="mecanicoInput"><br>
+        <label>Número de Eco:</label><br>
+        <input type="number" id="ecoInput"><br>
+        <label>Reparación realizada:</label><br>
+        <input type="text" id="reparacionInput"><br>
+        <label>Aseguranza:</label><br>
+        <select id="aseguranzaInput"><option>Si</option><option>No</option></select><br>
+        <label>Licencia:</label><br>
+        <select id="licenciaInput"><option>Si</option><option>No</option></select><br>
+        <label>Uniforme:</label><br>
+        <select id="uniformeInput"><option>Si</option><option>No</option></select><br>
+        <label>Limpieza (1-10):</label><br>
+        <input type="number" id="limpiezaInput" min="1" max="10"><br>
+        <label>Botiquín Exterior:</label><br>
+        <select id="botiquinInput"><option>Si</option><option>No</option></select><br>
+        <label>Daños:</label><br>
+        <input type="text" id="danosInput"><br>
+        <label>Hora de salida:</label><br>
+        <input type="time" id="horaSalidaInput"><br>
+        <label>Quién da salida:</label><br>
+        <input type="text" id="quienSalidaInput"><br>
+        <label>Status de salida del trabajo:</label><br>
+        <input type="text" id="statusInput"><br>
+       <button onclick="guardarInspeccion()">Guardar</button>
+        <button onclick="reiniciarFormulario()">inicio</button>
+        <button onclick="hacerdenuevo()">Reiniciar</button>
+    </div>
+</div>
+
+<script>
+    let inspecciones = []; // Arreglo para guardar datos acumulados
+
+    function seleccionarCategoria(categoria) {
+        document.getElementById('inicio').classList.remove('visible');
+        if (categoria === 'Inspección de Vehículo') {
+            document.getElementById('formularioInspeccion').classList.add('visible');
+        }
+    }
+
+    function guardarInspeccion() {
+        let datos = {
+            hora: document.getElementById('horaInput').value,
+            chofer: document.getElementById('choferInput').value,
+            mecanico: document.getElementById('mecanicoInput').value,
+            eco: document.getElementById('ecoInput').value,
+            reparacion: document.getElementById('reparacionInput').value,
+            aseguranza: document.getElementById('aseguranzaInput').value,
+            licencia: document.getElementById('licenciaInput').value,
+            uniforme: document.getElementById('uniformeInput').value,
+            limpieza: document.getElementById('limpiezaInput').value,
+            botiquin: document.getElementById('botiquinInput').value,
+            danos: document.getElementById('danosInput').value,
+            horaSalida: document.getElementById('horaSalidaInput').value,
+            quienSalida: document.getElementById('quienSalidaInput').value,
+            status: document.getElementById('statusInput').value
+        };
+
+        inspecciones.push(datos); // Agrega los datos al arreglo
+
+        exportarExcel(); // Exporta el archivo Excel
+    }
+
+    function exportarExcel() {
+        let wb = XLSX.utils.book_new();
+        let ws = XLSX.utils.json_to_sheet(inspecciones);
+        XLSX.utils.book_append_sheet(wb, ws, "Inspecciones");
+
+        // Guarda el archivo
+        XLSX.writeFile(wb, "inspecciones.xlsx");
+    }
+
+    function reiniciarFormulario() {
+        document.querySelectorAll('input, select').forEach(el => el.value = '');
+        document.getElementById('inicio').classList.add('visible');
+        document.getElementById('formularioInspeccion').classList.remove('visible');
+    }
+
+    function hacerdenuevo() {
+        document.querySelectorAll("input, select").forEach(el => el.value = " ");
+        documrnt.getElementById("formularioInspeccion").classList.remove("visible");
+    }
+</script>
+
+</body>
+</html>

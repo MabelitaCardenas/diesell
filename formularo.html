@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formulario Interactivo Combinado</title>
+  <!-- Usamos la versión 0.18.5 de xlsx -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    /* Estilos combinados */
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+    .container {
+      text-align: center;
+      width: 100%;
+      max-width: 600px;
+    }
+    .section {
+      display: none;
+    }
+    .visible {
+      display: block;
+    }
+    .box {
+      margin: 20px;
+      padding: 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 20px;
+      color: white;
+    }
+    .general    { background-color: #4CAF50; }
+    .zero-water { background-color: #007BFF; }
+    .ilpea      { background-color: #FF5722; }
+    .inspection { background-color: #8B008B; }
+    input, button, select {
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 18px;
+      width: 80%;
+    }
+    canvas {
+      border: 1px solid black;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Sección de botones iniciales -->
+    <div id="inicio" class="section visible">
+      <div class="box general" onclick="seleccionarCategoria('General')">General</div>
+      <div class="box zero-water" onclick="seleccionarCategoria('Zero Water')">Zero Water</div>
+      <div class="box ilpea" onclick="seleccionarCategoria('Ilpea')">Ilpea</div>
+      <div class="box inspection" onclick="seleccionarCategoria('Inspección de Vehículo')">Inspección de Vehículo</div>
+    </div>
+
+    <!-- Formulario General (para General, Zero Water e Ilpea) -->
+    <div id="formularioGeneral" class="section">
+      <h2>Formulario General</h2>
+      <input type="text" id="nombreInput" placeholder="Escribe el nombre">
+      <!-- Cambiamos el id para evitar conflicto con la inspección -->
+      <input type="number" id="ecoInputGeneral" placeholder="Escribe el eco">
+      <input type="number" id="litrosInput" placeholder="Escribe los litros">
+      <input type="number" id="viajesInput" placeholder="Escribe los viajes">
+      <input type="date" id="fechaInput">
+      <h2>Firma</h2>
+      <canvas id="firmaCanvas" width="300" height="150"></canvas>
+      <input type="text" id="nombreeInput" placeholder="Escribe tu nombre">
+      <button onclick="guardarDatosGeneral()">Guardar</button>
+      <button onclick="reiniciarFormularioGeneral()">Hacer de nuevo</button>
+    </div>
+
+    <!-- Formulario de Inspección de Vehículo -->
+    <div id="formularioInspeccion" class="section">
+      <h2>Formulario de Inspección de Vehículo</h2>
+      <label>Hora:</label><br>
+      <input type="time" id="horaInput"><br>
+      <label>Nombre del chofer:</label><br>
+      <input type="text" id="choferInput"><br>
+      <label>Mecánico recibido:</label><br>
+      <input type="text" id="mecanicoInput"><br>
+      <label>Número de Eco:</label><br>
+      <input type="number" id="ecoInput"><br>
+      <label>Reparación realizada:</label><br>
+      <input type="text" id="reparacionInput"><br>
+      <label>Aseguranza:</label><br>
+      <select id="aseguranzaInput">
+        <option>Si</option>
+        <option>No</option>
+      </select><br>
+      <label>Licencia:</label><br>
+      <select id="licenciaInput">
+        <option>Si</option>
+        <option>No</option>
+      </select><br>
+      <label>Uniforme:</label><br>
+      <select id="uniformeInput">
+        <option>Si</option>
+        <option>No</option>
+      </select><br>
+      <label>Limpieza (1-10):</label><br>
+      <input type="number" id="limpiezaInput" min="1" max="10"><br>
+      <label>Botiquín Exterior:</label><br>
+      <select id="botiquinInput">
+        <option>Si</option>
+        <option>No</option>
+      </select><br>
+      <label>Daños:</label><br>
+      <input type="text" id="danosInput"><br>
+      <label>Hora de salida:</label><br>
+      <input type="time" id="horaSalidaInput"><br>
+      <label>Quién da salida:</label><br>
+      <input type="text" id="quienSalidaInput"><br>
+      <label>Status de salida del trabajo:</label><br>
+      <input type="text" id="statusInput"><br>
+      <button onclick="guardarInspeccion()">Guardar</button>
+      <button onclick="reiniciarFormularioInspeccion()">Inicio</button>
+      <button onclick="hacerdenuevoInspeccion()">hacer de nuevo</button>
+    </div>
+  </div>
+
+  <script>
+    /* Variables globales */
+    var baseDatos = { "General": [], "Zero Water": [], "Ilpea": [] };
+    var categoriaSeleccionada = "";
+    let inspecciones = [];
+
+    /* Código para el canvas (sólo en el formulario general) */
+    var canvas = document.getElementById('firmaCanvas');
+    var ctx = canvas ? canvas.getContext('2d') : null;
+    var isDrawing = false;
+
+    function getCoordinates(e) {
+      // Usamos getBoundingClientRect para obtener la posición relativa del canvas
+      var rect = canvas.getBoundingClientRect();
+      var x = e.clientX || e.touches[0].clientX;
+      var y = e.clientY || e.touches[0].clientY;
+      return { x: x - rect.left, y: y - rect.top };
+    }
+
+    if (canvas) {
+      // Eventos de ratón
+      canvas.addEventListener('mousedown', function(e) {
+        isDrawing = true;
+        var coords = getCoordinates(e);
+        ctx.beginPath();
+        ctx.moveTo(coords.x, coords.y);
+      });
+
+      canvas.addEventListener('mousemove', function(e) {
+        if (isDrawing) {
+          var coords = getCoordinates(e);
+          ctx.lineTo(coords.x, coords.y);
+          ctx.stroke();
+        }
+      });
+
+      canvas.addEventListener('mouseup', function() {
+        isDrawing = false;
+      });
+
+      // Eventos de toque
+      canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        isDrawing = true;
+        var coords = getCoordinates(e);
+        ctx.beginPath();
+        ctx.moveTo(coords.x, coords.y);
+      });
+
+      canvas.addEventListener('touchmove', function(e) {
+        if (isDrawing) {
+          var coords = getCoordinates(e);
+          ctx.lineTo(coords.x, coords.y);
+          ctx.stroke();
+        }
+      });
+
+      canvas.addEventListener('touchend', function() {
+        isDrawing = false;
+      });
+    }
+
+    /* Función para seleccionar la categoría y mostrar el formulario correspondiente */
+    function seleccionarCategoria(categoria) {
+      // Ocultamos la sección inicial
+      document.getElementById('inicio').classList.remove('visible');
+      if (categoria === 'Inspección de Vehículo') {
+        document.getElementById('formularioInspeccion').classList.add('visible');
+      } else {
+        // Para las categorías generales (General, Zero Water, Ilpea)
+        categoriaSeleccionada = categoria;
+        document.getElementById('formularioGeneral').classList.add('visible');
+      }
+    }
+
+    /* Función para guardar los datos del formulario general */
+    function guardarDatosGeneral() {
+      var nombre    = document.getElementById('nombreInput').value;
+      var eco       = document.getElementById('ecoInputGeneral').value;
+      var litros    = document.getElementById('litrosInput').value;
+      var viajes    = document.getElementById('viajesInput').value;
+      var fecha     = document.getElementById('fechaInput').value;
+      var firma     = canvas.toDataURL();
+      var nombree   = document.getElementById('nombreeInput').value;
+      var rendimiento = litros/viajes
+
+      baseDatos[categoriaSeleccionada].push([nombre, eco, litros, viajes, fecha, firma, nombree, rendimiento]);
+
+      // Creamos el libro de Excel con encabezados y datos
+      var ws = XLSX.utils.aoa_to_sheet([
+        ["Nombre", "Eco", "Litros", "Viajes", "Fecha", "Firma", "Nombre", "Rendimiento"]
+      ]);
+      XLSX.utils.sheet_add_aoa(ws, baseDatos[categoriaSeleccionada], { origin: -1 });
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, categoriaSeleccionada);
+      XLSX.writeFile(wb, categoriaSeleccionada + ".xlsx");
+
+  
+    }
+
+    /* Función para reiniciar (limpiar) el formulario general */
+    function reiniciarFormularioGeneral() {
+      document.getElementById('nombreInput').value = '';
+      document.getElementById('ecoInputGeneral').value = '';
+      document.getElementById('litrosInput').value = '';
+      document.getElementById('viajesInput').value = '';
+      document.getElementById('fechaInput').value = '';
+      if (ctx && canvas) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      document.getElementById('nombreeInput').value = '';
+      document.getElementById('formularioGeneral').classList.remove('visible');
+      document.getElementById('inicio').classList.add('visible');
+    }
+
+    /* Función para guardar los datos del formulario de inspección */
+    function guardarInspeccion() {
+      let datos = {
+        hora:         document.getElementById('horaInput').value,
+        chofer:       document.getElementById('choferInput').value,
+        mecanico:     document.getElementById('mecanicoInput').value,
+        eco:          document.getElementById('ecoInput').value,
+        reparacion:   document.getElementById('reparacionInput').value,
+        aseguranza:   document.getElementById('aseguranzaInput').value,
+        licencia:     document.getElementById('licenciaInput').value,
+        uniforme:     document.getElementById('uniformeInput').value,
+        limpieza:     document.getElementById('limpiezaInput').value,
+        botiquin:     document.getElementById('botiquinInput').value,
+        danos:        document.getElementById('danosInput').value,
+        horaSalida:   document.getElementById('horaSalidaInput').value,
+        quienSalida:  document.getElementById('quienSalidaInput').value,
+        status:       document.getElementById('statusInput').value
+      };
+
+      inspecciones.push(datos);
+      exportarExcelInspeccion();
+    }
+
+    /* Función para exportar los datos de inspección a Excel */
+    function exportarExcelInspeccion() {
+      let wb = XLSX.utils.book_new();
+      let ws = XLSX.utils.json_to_sheet(inspecciones);
+      XLSX.utils.book_append_sheet(wb, ws, "Inspecciones");
+      XLSX.writeFile(wb, "inspecciones.xlsx");
+    }
+
+    /* Función para reiniciar el formulario de inspección */
+    function reiniciarFormularioInspeccion() {
+      var inputs = document.getElementById('formularioInspeccion').querySelectorAll('input, select');
+      inputs.forEach(el => el.value = '');
+      document.getElementById('formularioInspeccion').classList.remove('visible');
+      document.getElementById('inicio').classList.add('visible');
+    }
+
+     /* Función para hacer de nuevo el formulario de inspección */
+     function hacerdenuevoInspeccion() {
+      var inputs = document.getElementById('formularioInspeccion').querySelectorAll('input, select');
+      inputs.forEach(el => el.value = '');
+      document.getElementById('formularioInspeccion').classList.remove('visible');
+      document.getElementById('formularioInspeccion').classList.add('visible');
+    }
+  </script>
+</body>
+</html>

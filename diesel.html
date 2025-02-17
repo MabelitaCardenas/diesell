@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario Interactivo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+        .section {
+            display: none;
+        }
+        .visible {
+            display: block;
+        }
+        .box {
+            margin: 10px;
+            padding: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            color: white;
+        }
+        .general { background-color: #4CAF50; }
+        .zero-water { background-color: #007BFF; }
+        .ilpea { background-color: #FF5722; }
+        input, button {
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 18px;
+            width: 80%;
+        }
+        canvas {
+            border: 1px solid black;
+            background: white;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <div id="inicio" class="section visible">
+        <div class="box general" onclick="seleccionarCategoria('General')">General</div>
+        <div class="box zero-water" onclick="seleccionarCategoria('Zero Water')">Zero Water</div>
+        <div class="box ilpea" onclick="seleccionarCategoria('Ilpea')">Ilpea</div>
+    </div>
+
+    <div id="formulario" class="section">
+        <h2>Formulario</h2>
+        <input type="text" id="nombreInput" placeholder="Escribe el nombre">
+        <input type="number" id="ecoInput" placeholder="Escribe el eco">
+        <input type="number" id="litrosInput" placeholder="Escribe los litros">
+        <input type="number" id="viajesInput" placeholder="Escribe los viajes">
+        <input type="date" id="fechaInput">
+        <h2>Firma</h2>
+        <canvas id="firmaCanvas" width="300" height="150"></canvas>
+        <input type="text" id="nombreeInput" placeholder="Escribe tu nombre">
+        <button onclick="guardarDatos()">Guardar</button>
+        <button id="reiniciarBtn" style="display: none;" onclick="reiniciarFormulario()">Hacer de nuevo</button>
+    </div>
+</div>
+
+<script>
+    var baseDatos = { "General": [], "Zero Water": [], "Ilpea": [] };
+    var categoriaSeleccionada = "";
+    var canvas = document.getElementById('firmaCanvas');
+var ctx = canvas.getContext('2d');
+var isDrawing = false;
+
+// Función para obtener las coordenadas de un evento de ratón o de toque
+function getCoordinates(e) {
+    var x = e.clientX || e.touches[0].clientX;
+    var y = e.clientY || e.touches[0].clientY;
+    return { x: x - canvas.offsetLeft, y: y - canvas.offsetTop };
+}
+
+// Manejadores de eventos para el ratón
+canvas.addEventListener('mousedown', function(e) {
+    isDrawing = true;
+    var coords = getCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(coords.x, coords.y);
+});
+
+canvas.addEventListener('mousemove', function(e) {
+    if (isDrawing) {
+        var coords = getCoordinates(e);
+        ctx.lineTo(coords.x, coords.y);
+        ctx.stroke();
+    }
+});
+
+canvas.addEventListener('mouseup', function() {
+    isDrawing = false;
+});
+
+// Manejadores de eventos para el toque
+canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();  // Evitar el scroll en la página
+    isDrawing = true;
+    var coords = getCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(coords.x, coords.y);
+});
+
+canvas.addEventListener('touchmove', function(e) {
+    if (isDrawing) {
+        var coords = getCoordinates(e);
+        ctx.lineTo(coords.x, coords.y);
+        ctx.stroke();
+    }
+});
+
+canvas.addEventListener('touchend', function() {
+    isDrawing = false;
+});
+
+
+
+    function seleccionarCategoria(categoria) {
+        categoriaSeleccionada = categoria;
+        document.getElementById('inicio').classList.remove('visible');
+        document.getElementById('formulario').classList.add('visible');
+    }
+
+    function guardarDatos() {
+        var nombre = document.getElementById('nombreInput').value;
+        var eco = document.getElementById('ecoInput').value;
+        var litros = document.getElementById('litrosInput').value;
+        var viajes = document.getElementById('viajesInput').value;
+        var fecha = document.getElementById('fechaInput').value;
+        var firma = canvas.toDataURL();
+        var nombree = document.getElementById('nombreeInput').value;
+        
+        baseDatos[categoriaSeleccionada].push([nombre, eco, litros, fecha, firma, nombree]);
+
+        var ws = XLSX.utils.aoa_to_sheet([
+            ["Nombre", "Eco", "Litros", "viajes", "Fecha", "Firma", "Nombre"]
+        ]);
+
+        XLSX.utils.sheet_add_aoa(ws, baseDatos[categoriaSeleccionada], { origin: -1 });
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, categoriaSeleccionada);
+        XLSX.writeFile(wb, categoriaSeleccionada + ".xlsx");
+        
+        document.getElementById('reiniciarBtn').style.display = 'inline';
+    }
+
+    function reiniciarFormulario() {
+        document.getElementById('nombreInput').value = '';
+        document.getElementById('ecoInput').value = '';
+        document.getElementById('litrosInput').value = '';
+        document.getElementById('viajesInput').value = '';
+        document.getElementById('fechaInput').value = '';
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        document.getElementById('nombreeInput').value = '';
+        document.getElementById('reiniciarBtn').style.display = 'none';
+        document.getElementById('inicio').classList.add('visible');
+        document.getElementById('formulario').classList.remove('visible');
+    }
+</script>
+</body>
+</html>
